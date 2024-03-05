@@ -1,13 +1,83 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800;900&display=swap");
+
+@font-face {
+  font-family: 'Novecento Sans Wide Medium';
+  src: url('./assets/fonts/NovecentoWideMedium.woff2') format('woff2'),
+  url('./assets/fonts/NovecentoWideMedium.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+body {
+  font-family: 'Novecento Sans Wide Medium', sans-serif;
+  background-color: #FAFAFA
+}
+
+
+#root {
+  background-color: #FAFAFA
+}
+
+
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+p {
+  font-family: "Rubik", sans-serif;
+}
+
+.pagination {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  /*position: absolute;*/
+  bottom: 0;
+  right: 50%;
+  left: 50%;
+  margin-top: 15px;
+  justify-content: center;
+  font-family: "Rubik", sans-serif;
+}
+
+.pagination li {
+  margin: 0 3px;
+}
+
+.pagination li a {
+  color: #757a85;
+  float: left;
+  padding: 8px 16px;
+  text-decoration: none;
+  transition: background-color .3s;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.pagination li a:hover {
+  background-color: #ddd;
+  border-color: #ddd;
+}
+
+.pagination li.active a {
+  background-color: #5A8DEE;
+  color: white;
+  border-color: #5A8DEE;
+}
+
+.pagination li.disabled a {
+  color: #D7DAE0;
+}
+
+.pagination li.previous a,
+.pagination li.next a {
+  font-weight: bold;
+  background-color: #F6F7FB;
+}
+
+.pagination li.break a {
+  cursor: default;
 }

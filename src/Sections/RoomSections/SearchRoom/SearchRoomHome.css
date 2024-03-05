@@ -1,0 +1,35 @@
+.searchRoomHome {
+    background-color: white;
+    border-radius: 10px;
+    display: flex;
+    padding: 10px;
+    justify-content: space-between;
+    gap: 10px;
+    /*transform: translate(18%, 0);*/
+    width: 100%;
+}
+
+.searchRoomHomeInput {
+    width: 90%;
+}
+
+.searchRoomHomeContainer {
+    flex-grow: 1;
+    justify-content: center;
+}
+
+
+.searchRoomHomeActions {
+    display: flex;
+    gap: 10px;
+}
+
+@media (max-width:720px) {
+    .searchRoomHome {
+        flex-direction: column;
+    }
+
+    .searchRoomHomeActions {
+        justify-content: center;
+    }
+}

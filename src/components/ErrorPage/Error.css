@@ -1,0 +1,19 @@
+.errorWrapper {
+    min-height: 100vh;
+}
+
+.Error {
+    padding: 10px;
+    width: 230px;
+    background-color: #f5dfdf;
+    color: #CD001D;
+    border: 1px solid #f2b1b1;
+}
+
+.Error {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
