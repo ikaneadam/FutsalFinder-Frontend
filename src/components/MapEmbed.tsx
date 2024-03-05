@@ -19,7 +19,7 @@ const MapEmbed = (props: mapEmbedProps) => {
             try {
                 const response = await axios({
                     method: 'get',
-                    url: `https://www.google.com/maps/embed/v1/view?center=${latitude},${longitude}&zoom=15&maptype=roadmap&key=AIzaSyCjuLOwviIiStcbWdx-EJhsR59MQzW_EHk`,
+                    url: `https://www.google.com/maps/embed/v1/view?center=${latitude},${longitude}&zoom=15&maptype=roadmap&key=`,
                 });
 
                 setMap(response.config.url!);
