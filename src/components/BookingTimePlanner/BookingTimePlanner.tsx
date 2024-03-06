@@ -1,20 +1,22 @@
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import React, { ChangeEvent, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { AvailableBookingTimes, ReservedTimeBlock } from '../../types/StandardAvailableDate';
 import './bookingTimePLanner.css';
-import {
-    calculateOpeningHours,
-    OpeningDay,
-    OpeningHoursWeek,
-} from '../../helpers/TimeBlocks/calculateOpeningHours';
-import { determineDeviceType, useViewport } from '../../helpers/UseViewPort';
+import { calculateOpeningHours, OpeningDay } from '../../helpers/TimeBlocks/calculateOpeningHours';
+import { useViewport } from '../../helpers/UseViewPort';
 import { isTimeSlotBetweenTimeBlock } from '../../helpers/TimeBlocks/isHourBetweenTimeBlock';
 import { isDateStringEqualToDate } from '../../helpers/Dates/IsDateStringEqualToDate';
-import { TimeBlock } from '../../types/TimeBlock';
 import { Box, Typography } from '@mui/material';
-import { parseAddressToString } from '../../helpers/parseAddressToString';
+import { v4 as uuidv4 } from 'uuid';
+
 export type BookingTimePlannerProps = {
     availableBookingTimes: AvailableBookingTimes;
+};
+
+type BookingSlot = {
+    isAvailable: boolean;
+    reservedTimeBlock: ReservedTimeBlock | null;
+    timeSlot: { startTime: number; endTime: number };
 };
 
 export default function BookingTimePlanner(props: BookingTimePlannerProps) {
@@ -35,6 +37,41 @@ export default function BookingTimePlanner(props: BookingTimePlannerProps) {
             return Array.from({ length: 24 }, (_, i) => i);
         }
         return Array.from({ length: 17 }, (_, i) => i + 7);
+    };
+
+    const getBookingDays = () => {
+        const today = new Date();
+        const next6Days = Array.from({ length: 6 }, (_, i) => {
+            const nextDay = new Date(today);
+            nextDay.setDate(today.getDate() + i + 1);
+            return nextDay;
+        });
+        return [today, ...next6Days];
+    };
+
+    const getBookingSlots = (day: Date): { bookingSlot: BookingSlot; className: string }[] => {
+        return getHours().map((hour: number, index) => {
+            const currentTimeSlot = {
+                startTime: hour,
+                endTime: hour + 1,
+            };
+            const [isCurrentSlotAvailable, reservedTimeSlot] = isSlotAvailable(
+                day,
+                currentTimeSlot
+            );
+            const timeSlotClassName = createTimeSlotClassName(
+                isCurrentSlotAvailable,
+                reservedTimeSlot
+            );
+            return {
+                bookingSlot: {
+                    isAvailable: isCurrentSlotAvailable,
+                    reservedTimeBlock: reservedTimeSlot,
+                    timeSlot: currentTimeSlot,
+                },
+                className: timeSlotClassName,
+            };
+        });
     };
 
     const actionBar = (
@@ -65,7 +102,7 @@ export default function BookingTimePlanner(props: BookingTimePlannerProps) {
                         cursor: 'pointer',
                     }}
                 >
-                    <span>{toggleHourView ? 'Contract' : 'Expand'}</span>
+                    <span>{toggleHourView ? 'Collapse' : 'Expand'}</span>
                     <KeyboardArrowDownIcon fontSize="small" sx={{ color: '#335fff' }} />
                 </button>
             </div>
@@ -170,14 +207,15 @@ export default function BookingTimePlanner(props: BookingTimePlannerProps) {
     const renderAvailabilitySlot = (
         date: Date,
         timeSlot: { startTime: number; endTime: number },
-        style = {}
+        isAvailable: boolean,
+        className: string,
+        style: any = {}
     ) => {
-        const [slotAvailable, reservedTimeSlot] = isSlotAvailable(date, timeSlot);
-        if (slotAvailable) {
+        if (isAvailable) {
             return (
                 <div
-                    key={`${timeSlot.startTime}-${date.getDay()}`}
-                    className="availabilitySlot"
+                    key={`${timeSlot.startTime}`}
+                    className={className}
                     onClick={() => {
                         handleBooking(date, timeSlot);
                     }}
@@ -185,26 +223,99 @@ export default function BookingTimePlanner(props: BookingTimePlannerProps) {
             );
         }
 
-        // this calculation should be kept up in the loop so we dont have to do it mutliple times
-        const isPreviousAvailable = !isSlotAvailable(date, {
-            startTime: timeSlot.startTime - 1,
-            endTime: timeSlot.endTime - 1,
-        })[0];
-        const isNextAvailable = !isSlotAvailable(date, {
-            startTime: timeSlot.startTime + 1,
-            endTime: timeSlot.endTime + 1,
-        })[0];
+        return <div key={timeSlot.startTime} style={style} className={className}></div>;
+    };
 
+    const createSlotBorderStyling = (adjacentSlotClasses: {
+        prevClassName: string;
+        currentClassName: string;
+        nextClassName: string;
+    }) => {
+        const { prevClassName, currentClassName, nextClassName } = adjacentSlotClasses;
+        const leftBorderStyle = {
+            borderRadius: '10px 0 0 10px',
+        };
+        const rightBorderStyle = {
+            borderRadius: '0 10px 10px 0',
+        };
+        const leftAndRightBorderStyle = {
+            borderRadius: '10px',
+        };
+
+        if (prevClassName === '') {
+            return leftBorderStyle;
+        }
+
+        if (nextClassName === '') {
+            return rightBorderStyle;
+        }
+
+        if (prevClassName !== currentClassName && nextClassName !== currentClassName) {
+            return leftAndRightBorderStyle;
+        }
+
+        if (prevClassName !== currentClassName) {
+            return leftBorderStyle;
+        }
+
+        if (nextClassName !== currentClassName) {
+            return rightBorderStyle;
+        }
+        return {};
+    };
+
+    const renderAvailabilitySlots = () => {
         return (
-            <div
-                key={`${timeSlot.startTime}-${date.getDay()}`}
-                className={createClassNameOutOfReserveTimeSlot(reservedTimeSlot)}
-                style={{ ...createBorderStyling(isPreviousAvailable, isNextAvailable), ...style }}
-            ></div>
+            <div className="availabilitySlots">
+                {getBookingDays().map((day: Date, i) => {
+                    const slots = getBookingSlots(day);
+                    return (
+                        <div key={i} className="availabilitySloty">
+                            {slots.map(
+                                (
+                                    slot: { bookingSlot: BookingSlot; className: string },
+                                    i: number
+                                ) => {
+                                    const { bookingSlot, className } = slot;
+                                    const prevClassName = i > 0 ? slots[i - 1].className : '';
+                                    const nextClassName =
+                                        i === slots.length - 1 ? '' : slots[i + 1].className;
+
+                                    console.log({
+                                        prevClassName,
+                                        currentClassName: className,
+                                        nextClassName,
+                                    });
+
+                                    const slotBorderStyling = createSlotBorderStyling({
+                                        prevClassName,
+                                        currentClassName: className,
+                                        nextClassName,
+                                    });
+
+                                    return renderAvailabilitySlot(
+                                        day,
+                                        bookingSlot.timeSlot,
+                                        bookingSlot.isAvailable,
+                                        className,
+                                        slotBorderStyling
+                                    );
+                                }
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         );
     };
 
-    const createClassNameOutOfReserveTimeSlot = (reservedTimeSlot: null | ReservedTimeBlock) => {
+    const createTimeSlotClassName = (
+        isAvailable: boolean,
+        reservedTimeSlot: null | ReservedTimeBlock
+    ) => {
+        if (isAvailable) {
+            return 'availabilitySlot';
+        }
         if (reservedTimeSlot === null) {
             return 'unAvailableSlot';
         }
@@ -216,73 +327,10 @@ export default function BookingTimePlanner(props: BookingTimePlannerProps) {
         return 'reservedSlot';
     };
 
-    const createBorderStyling = (isPreviousAvailable: boolean, isNextAvailable: boolean) => {
-        if (isPreviousAvailable && isNextAvailable) return {};
-
-        if (!isPreviousAvailable && !isNextAvailable)
-            return {
-                borderRadius: '10px',
-            };
-
-        if (isPreviousAvailable)
-            return {
-                borderRadius: '0 10px 10px 0',
-            };
-
-        if (isNextAvailable) {
-            return {
-                borderRadius: '10px 0 0 10px',
-            };
-        }
-
-        return {};
-    };
-
-    const renderAvailabilitySlots = () => {
-        return (
-            <div className="availabilitySlots">
-                {getBookingDays().map((day: Date) => (
-                    <div key={`${day.getDay()}`} className="availabilitySloty">
-                        {getHours().map((hour: number, index) => {
-                            let style = {};
-
-                            if (index === 0) {
-                                style = {
-                                    borderRadius: '10px 0 0 10px',
-                                };
-                            }
-
-                            if (index === getHours().length - 1) {
-                                style = {
-                                    borderRadius: '0 10px 10px 0',
-                                };
-                            }
-                            const test = {
-                                startTime: hour,
-                                endTime: hour + 1,
-                            };
-                            return <>{renderAvailabilitySlot(day, test, style)}</>;
-                        })}
-                    </div>
-                ))}
-            </div>
-        );
-    };
-
     function formatDate(date: any) {
         const options = { weekday: 'long' };
         return date.toLocaleDateString('en-US', options);
     }
-
-    const getBookingDays = () => {
-        const today = new Date();
-        const next6Days = Array.from({ length: 6 }, (_, i) => {
-            const nextDay = new Date(today);
-            nextDay.setDate(today.getDate() + i + 1);
-            return nextDay;
-        });
-        return [today, ...next6Days];
-    };
 
     return (
         <div className="bookingPlanner">
@@ -290,13 +338,13 @@ export default function BookingTimePlanner(props: BookingTimePlannerProps) {
             <div className="bookingTimes">
                 <div className="bookingTimesDays">
                     <div className="bookingTimesDay"></div>
-                    {getBookingDays().map((day, index) => (
+                    {getBookingDays().map((day, i) => (
                         <div
-                            key={index}
+                            key={i}
                             className="bookingTimesDay"
-                            style={{ color: index === 0 ? 'black' : '#999999' }}
+                            style={{ color: i === 0 ? 'black' : '#999999' }}
                         >
-                            {index === 0 ? 'Today' : formatDate(day)}
+                            {i === 0 ? 'Today' : formatDate(day)}
                         </div>
                     ))}
                 </div>

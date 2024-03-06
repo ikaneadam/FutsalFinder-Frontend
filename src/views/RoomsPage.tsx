@@ -21,7 +21,7 @@ export default function RoomsPage() {
     const query = useQuery();
     const { width } = useViewport();
     const [distanceQuery, setDistanceQuery] = useState<undefined | DistanceQuery>(undefined);
-    const { isMobile, isTablet, isDesktop } = determineDeviceType(width);
+    const { isTablet, isDesktop } = determineDeviceType(width);
     const initialAddress = decodeURIComponent(query.get('address') || '');
     const initialRadius = query.get('radius') || '';
     const initialLatitude = query.get('latitude');
@@ -72,10 +72,7 @@ export default function RoomsPage() {
 
     useEffect(() => {
         if (status === HttpStatus.isSuccess) {
-            const { isAddressFound, distanceQuery } = getDistanceQueryFromGeoAddress(
-                data!,
-                initialRadius
-            );
+            const { isAddressFound } = getDistanceQueryFromGeoAddress(data!, initialRadius);
             if (!isAddressFound) {
                 toast.error('No address found', { duration: 1500 });
             }
